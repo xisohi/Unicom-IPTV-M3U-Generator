@@ -4,6 +4,7 @@ __pycache__/
 .venv/
 venv/
 .env
+dist/
 
 # Config with secrets
 config.yaml
