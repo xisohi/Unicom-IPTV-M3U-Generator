@@ -5,7 +5,7 @@ __pycache__/
 venv/
 .env
 dist/
-IPTV列表获取工具.spec
+*.spec
 
 # Config with secrets
 config.yaml
@@ -18,7 +18,7 @@ epg.db
 channels.txt
 
 # Local development
-.env/
+.env
 
 # OS
 Thumbs.db
@@ -27,3 +27,12 @@ Thumbs.db
 # IDE
 .vscode/
 .idea/
+*.swp
+*.swo
+
+# Python
+*.egg-info/
+pip-log.txt
+pip-delete-this-directory.txt
+.pytest_cache/
+.coverage
