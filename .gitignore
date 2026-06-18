@@ -5,7 +5,7 @@ __pycache__/
 venv/
 .env
 dist/
-*.spec
+build/
 
 # Config with secrets
 config.yaml

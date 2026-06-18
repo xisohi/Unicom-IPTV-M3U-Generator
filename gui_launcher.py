@@ -28,12 +28,6 @@ except ImportError:
     print("错误: pyyaml 未安装，请运行: pip install pyyaml")
     sys.exit(1)
 
-# ==================== 路径配置 ====================
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-DATA_DIR = os.path.join(BASE_DIR, "data")
-CONFIG_FILE = os.path.join(BASE_DIR, "config.yaml")
-OUTPUT_FILE = os.path.join(DATA_DIR, "iptv.m3u")
-
 
 class IPTVDesktopTool:
     def __init__(self, root):
@@ -45,6 +39,18 @@ class IPTVDesktopTool:
 
         self.is_running = False
         self.web_process = None
+
+        # ===== 路径配置（兼容打包和开发环境） =====
+        if getattr(sys, 'frozen', False):
+            # 打包后的 exe：数据目录在 exe 同级目录
+            self.base_dir = os.path.dirname(sys.executable)
+        else:
+            # 开发环境：脚本所在目录
+            self.base_dir = os.path.dirname(os.path.abspath(__file__))
+
+        self.data_dir = os.path.join(self.base_dir, "data")
+        self.config_file = os.path.join(self.base_dir, "config.yaml")
+        self.output_file = os.path.join(self.data_dir, "iptv.m3u")
 
         self._build_ui()
         self._load_saved_config()
@@ -83,7 +89,7 @@ class IPTVDesktopTool:
                  bg='#f0f0f0', font=("Microsoft YaHei", 9)).pack(side=tk.LEFT)
         self.server_entry = tk.Entry(row1, width=50, font=("Consolas", 9))
         self.server_entry.pack(side=tk.LEFT, padx=(0, 10))
-        tk.Label(row1, text="例: http://10.0.0.1 或 http://10.0.0.1:8080",
+        tk.Label(row1, text="例:10.0.0.1 或 10.0.0.1:8080",
                  fg='#95a5a6', bg='#f0f0f0', font=("Microsoft YaHei", 8)).pack(side=tk.LEFT)
 
         # 行2: UserID
@@ -211,7 +217,7 @@ class IPTVDesktopTool:
     # ==================== 配置管理 ====================
     def _load_saved_config(self):
         """启动时自动加载配置"""
-        if os.path.exists(CONFIG_FILE):
+        if os.path.exists(self.config_file):
             self.load_config(silent=True)
 
     def save_config(self):
@@ -229,7 +235,7 @@ class IPTVDesktopTool:
             return
 
         try:
-            with open(CONFIG_FILE, 'w', encoding='utf-8') as f:
+            with open(self.config_file, 'w', encoding='utf-8') as f:
                 yaml.dump(config, f, allow_unicode=True, default_flow_style=False)
             self.log("✅ 配置已保存到 config.yaml", "success")
             self.set_status("✅ 配置已保存", "", "#27ae60")
@@ -240,13 +246,13 @@ class IPTVDesktopTool:
 
     def load_config(self, silent=False):
         """从 config.yaml 加载配置到界面"""
-        if not os.path.exists(CONFIG_FILE):
+        if not os.path.exists(self.config_file):
             if not silent:
                 messagebox.showwarning("提示", "未找到 config.yaml 配置文件")
             return
 
         try:
-            with open(CONFIG_FILE, 'r', encoding='utf-8') as f:
+            with open(self.config_file, 'r', encoding='utf-8') as f:
                 config = yaml.safe_load(f)
 
             if not config:
@@ -317,7 +323,7 @@ class IPTVDesktopTool:
         self.set_status("⏳ 正在获取...", "请稍候，正在连接服务器", "#f39c12")
 
         # 创建数据目录
-        os.makedirs(DATA_DIR, exist_ok=True)
+        os.makedirs(self.data_dir, exist_ok=True)
 
         # 后台执行
         thread = threading.Thread(target=self._run_scraper_thread,
@@ -328,71 +334,118 @@ class IPTVDesktopTool:
     def _run_scraper_thread(self, server, user_id, stb_id, mac):
         """后台线程执行爬虫"""
         try:
-            # 添加 src 目录到路径
-            src_dir = os.path.join(BASE_DIR, "src")
+            import sys
+            import os
+
+            # 获取路径
+            if getattr(sys, 'frozen', False):
+                base_dir = sys._MEIPASS
+            else:
+                base_dir = os.path.dirname(os.path.abspath(__file__))
+
+            # 确保 src 在路径中
+            src_dir = os.path.join(base_dir, "src")
             if src_dir not in sys.path:
                 sys.path.insert(0, src_dir)
 
-            # 设置环境变量
-            os.environ["DATA_DIR"] = DATA_DIR
+            # 数据目录
+            exe_dir = os.path.dirname(sys.executable) if getattr(sys, 'frozen', False) else self.base_dir
+            data_dir = os.path.join(exe_dir, "data")
+            os.environ["DATA_DIR"] = data_dir
 
-            # 导入项目模块
-            from scraper import get_channel_list
+            self.log("📂 数据目录: " + data_dir, "info")
 
+            # ===== 修复：去掉 http:// 前缀 =====
+            if server.startswith('http://'):
+                server = server[7:]
+            elif server.startswith('https://'):
+                server = server[8:]
+            self.log(f"📡 服务器地址（处理后）: {server}", "info")
+
+            # 导入 scraper 模块
+            import scraper
+            import yaml
+
+            # 生成配置文件
+            config = {
+                "login": {
+                    "server": server,
+                    "userId": user_id,
+                    "stbId": stb_id,
+                    "mac": mac,
+                    "password": "12345678",
+                    "ipaddr": "0.0.0.0",
+                    "headers": {
+                        "User-Agent": "Mozilla/5.0",
+                        "Accept": "*/*",
+                        "Accept-Language": "zh-CN,zh;q=0.9",
+                        "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8"
+                    },
+                    "igmp": {
+                        "host": "127.0.0.1",
+                        "port": 4022
+                    },
+                    "lang": "1",
+                    "supportHD": "1",
+                    "stbType": "1",
+                    "stbVersion": "1.0",
+                    "conntype": "1",
+                    "templateName": "default",
+                    "areaId": "0",
+                    "softwareVersion": "1.0",
+                    "stbidShort": stb_id[:8] if len(stb_id) >= 8 else stb_id
+                },
+                "epg": {
+                    "esaasHost": "139.215.93.40:3100",
+                    "areaCode": "0",
+                    "daysBefore": 1,
+                    "daysAfter": 1
+                },
+                "channels": []
+            }
+
+            # 保存配置文件
+            config_path = os.path.join(data_dir, "config.yaml")
+            os.makedirs(data_dir, exist_ok=True)
+            with open(config_path, 'w', encoding='utf-8') as f:
+                yaml.dump(config, f, allow_unicode=True, default_flow_style=False)
+
+            self.log("📝 配置文件已生成: " + config_path, "info")
+
+            # 调用 scraper.process()
             self.log("📡 正在连接 IPTV 服务器...", "info")
+            scraper.process(config_path, data_dir)
 
-            # 执行获取
-            channels = get_channel_list(
-                server=server,
-                user_id=user_id,
-                stb_id=stb_id,
-                mac=mac
-            )
-
-            if not channels:
-                self.log("⚠️ 未获取到任何频道", "warning")
-                self.root.after(0, lambda: self._on_error("未获取到频道，请检查配置"))
-                return
-
-            self.log(f"✅ 成功获取 {len(channels)} 个频道", "success")
-
-            # 生成 M3U
-            self.log("📝 正在生成播放列表...", "info")
-            lines = ["#EXTM3U"]
-            for ch in channels:
-                name = ch.get("name", "未知频道")
-                url = ch.get("url", "")
-                if url:
-                    lines.append(f'#EXTINF:-1,{name}')
-                    lines.append(url)
-
-            with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
-                f.write("\n".join(lines))
-
-            self.log(f"✅ 播放列表已保存: {OUTPUT_FILE}", "success")
-            self.log("=" * 55, "title")
-
-            self.root.after(0, lambda: self._on_success(len(channels)))
+            # 检查输出文件
+            output_file = os.path.join(data_dir, "iptv.m3u")
+            if os.path.exists(output_file):
+                with open(output_file, 'r', encoding='utf-8') as f:
+                    lines = f.readlines()
+                    channel_count = sum(1 for line in lines if line.startswith('#EXTINF'))
+                self.log("=" * 55, "title")
+                self.root.after(0, lambda: self._on_success(channel_count, output_file))
+            else:
+                self.log("❌ 未生成播放列表", "error")
+                self.root.after(0, lambda: self._on_error("未能生成播放列表"))
 
         except ImportError as e:
             self.log(f"❌ 导入模块失败: {e}", "error")
-            self.log("请确保在项目根目录运行，且已安装所有依赖", "warning")
             self.root.after(0, lambda: self._on_error(f"模块导入失败: {e}"))
 
         except Exception as e:
             self.log(f"❌ 错误: {str(e)}", "error")
             self.root.after(0, lambda: self._on_error(str(e)))
 
-    def _on_success(self, count):
+    def _on_success(self, count, output_file):
         """成功回调"""
-        self.set_status(f"✅ 获取成功！共 {count} 个频道", f"文件: {OUTPUT_FILE}", "#27ae60")
+        self.set_status(f"✅ 获取成功！共 {count} 个频道", f"文件: {output_file}", "#27ae60")
         self.run_btn.config(state=tk.NORMAL, text="🚀 获取列表")
         self.is_running = False
 
         messagebox.showinfo("完成",
             f"✅ 频道列表获取成功！\n\n"
             f"共获取 {count} 个频道\n"
-            f"文件位置: {OUTPUT_FILE}\n\n"
+            f"文件位置: {output_file}\n\n"
             f"点击「打开输出目录」查看文件。")
 
     def _on_error(self, msg):
@@ -423,19 +476,25 @@ class IPTVDesktopTool:
     # ==================== 辅助功能 ====================
     def open_output_dir(self):
         """打开输出目录"""
-        if not os.path.exists(DATA_DIR):
-            os.makedirs(DATA_DIR, exist_ok=True)
-        subprocess.Popen(f'explorer "{DATA_DIR}"')
+        if not os.path.exists(self.data_dir):
+            os.makedirs(self.data_dir, exist_ok=True)
+        subprocess.Popen(f'explorer "{self.data_dir}"')
 
     def open_web(self):
         """启动Web界面（如果可用）"""
         try:
+            # 获取 src 目录路径（兼容打包和开发环境）
+            if getattr(sys, 'frozen', False):
+                src_dir = os.path.join(sys._MEIPASS, "src")
+            else:
+                src_dir = os.path.join(self.base_dir, "src")
+
             if self.web_process is None or self.web_process.poll() is not None:
                 self.log("🌐 正在启动 Web 服务...", "info")
                 self.web_process = subprocess.Popen(
-                    [sys.executable, os.path.join(BASE_DIR, "src", "web.py")],
-                    cwd=BASE_DIR,
-                    env={**os.environ, "DATA_DIR": DATA_DIR},
+                    [sys.executable, os.path.join(src_dir, "web.py")],
+                    cwd=self.base_dir,
+                    env={**os.environ, "DATA_DIR": self.data_dir},
                     stdout=subprocess.DEVNULL,
                     stderr=subprocess.DEVNULL
                 )
