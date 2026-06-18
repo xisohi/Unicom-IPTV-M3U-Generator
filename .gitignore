@@ -5,6 +5,7 @@ __pycache__/
 venv/
 .env
 dist/
+IPTV列表获取工具.spec
 
 # Config with secrets
 config.yaml
