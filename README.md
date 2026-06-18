@@ -1,4 +1,4 @@
-# 长春联通 IPTV STB Mock
+# 联通 IPTV STB Mock
 
 [![Build and Push Docker Image](https://github.com/VergilGao/Unicom-IPTV-Mock/actions/workflows/release.yml/badge.svg)](https://github.com/VergilGao/Unicom-IPTV-Mock/actions/workflows/release.yml)
 
