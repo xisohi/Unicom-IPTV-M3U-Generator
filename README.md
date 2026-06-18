@@ -1,10 +1,8 @@
-# 联通 IPTV STB Mock
-
-[![Build and Push Docker Image](https://github.com/VergilGao/Unicom-IPTV-Mock/actions/workflows/release.yml/badge.svg)](https://github.com/VergilGao/Unicom-IPTV-Mock/actions/workflows/release.yml)
+# Unicom-IPTV-M3U-Generator
 
 用 Python 模拟机顶盒登录鉴权，获取 IPTV 频道列表和节目单。
 
-本仓库模拟了长春联通 IPTV 机顶盒的登录流程，可以自动获取频道的组播播放列表、单播回看地址和节目单。
+本仓库模拟了联通 IPTV 机顶盒的登录流程，可以自动获取频道的组播播放列表、单播回看地址和节目单。
 
 ## 功能
 
