@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}定时任务 - IPTV STB Mock{% endblock %}
+{% block content %}
+<div class="row">
+  <div class="col-lg-6 mx-auto">
+    <form id="sched-form" onsubmit="return saveSchedule(event)">
+      <div class="card">
+        <div class="card-body">
+          <div class="form-check mb-3">
+            <input class="form-check-input" type="checkbox" name="enabled" id="enabled"
+              {% if sched.enabled %}checked{% endif %}>
+            <label class="form-check-label" for="enabled">启用自动运行</label>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Cron 表达式</label>
+            <input class="form-control" name="cron" value="{{ sched.cron }}">
+            <div class="form-text">格式: 分 时 日 月 周（例如 <code>0 6 * * *</code> = 每天6:00）</div>
+          </div>
+          {% if sched.last_run %}
+          <p class="text-muted small mb-0">
+            上次: {{ sched.last_run[:16] }} ·
+            {% if sched.last_status == 'success' %}✅ 成功{% else %}❌ 失败{% endif %}
+          </p>
+          {% endif %}
+          <button type="submit" class="btn btn-primary w-100 mt-3">💾 保存</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+function saveSchedule(e){
+  e.preventDefault();
+  var btn = e.target.querySelector('button');
+  btn.disabled = true; btn.textContent = '⏳ 保存中...';
+  fetch('/schedule', {method:'POST', body: new FormData(e.target)})
+    .then(function(r){return r.json()})
+    .then(function(d){ alert('已保存'); location.reload(); })
+    .catch(function(e){ alert('保存失败: '+e); })
+    .finally(function(){ btn.disabled=false; btn.textContent='💾 保存'; });
+  return false;
+}
+</script>
+{% endblock %}

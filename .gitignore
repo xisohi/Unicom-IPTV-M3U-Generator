@@ -1,0 +1,27 @@
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+.env
+
+# Config with secrets
+config.yaml
+AGENTS.md
+
+# Output files
+iptv.m3u
+epg.xml
+epg.db
+channels.txt
+
+# Local development
+.env/
+
+# OS
+Thumbs.db
+.DS_Store
+
+# IDE
+.vscode/
+.idea/

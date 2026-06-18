@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block title %}配置 - IPTV STB Mock{% endblock %}
+{% block content %}
+<div class="row">
+  <div class="col-lg-8 mx-auto">
+    <form id="config-form" onsubmit="return saveConfig(event)">
+      <div class="card mb-3">
+        <div class="card-header">登录参数</div>
+        <div class="card-body">
+          <div class="row g-3">
+            <div class="col-md-6"><label class="form-label">服务器 (EDS host)</label><input class="form-control" name="login.server" value="{{ cfg.login.server }}"></div>
+            <div class="col-md-6"><label class="form-label">用户ID (UserID)</label><input class="form-control" name="login.userId" value="{{ cfg.login.userId }}"></div>
+            <div class="col-md-6"><label class="form-label">密码</label><input class="form-control" name="login.password" value="{{ cfg.login.password }}"></div>
+            <div class="col-md-6"><label class="form-label">STB ID (STBID)</label><input class="form-control" name="login.stbId" value="{{ cfg.login.stbId }}"></div>
+            <div class="col-md-6"><label class="form-label">MAC (mac)</label><input class="form-control" name="login.mac" value="{{ cfg.login.mac }}"></div>
+            <div class="col-md-6"><label class="form-label">IP</label><input class="form-control" name="login.ipaddr" value="{{ cfg.login.ipaddr }}"></div>
+            <div class="col-md-4"><label class="form-label">连接类型 (conntype)</label><input class="form-control" name="login.conntype" value="{{ cfg.login.conntype }}"></div>
+            <div class="col-md-4"><label class="form-label">STB类型 (STBType)</label><input class="form-control" name="login.stbType" value="{{ cfg.login.stbType }}"></div>
+            <div class="col-md-4"><label class="form-label">STB版本 (STBVersion)</label><input class="form-control" name="login.stbVersion" value="{{ cfg.login.stbVersion }}"></div>
+            <div class="col-md-6"><label class="form-label">软件版本 (SoftwareVersion)</label><input class="form-control" name="login.softwareVersion" value="{{ cfg.login.softwareVersion }}"></div>
+            <div class="col-md-6"><label class="form-label">模板 (templateName)</label><input class="form-control" name="login.templateName" value="{{ cfg.login.templateName }}"></div>
+            <div class="col-md-4"><label class="form-label">区域 (areaId)</label><input class="form-control" name="login.areaId" value="{{ cfg.login.areaId }}"></div>
+            <div class="col-md-4"><label class="form-label">语言 (Lang)</label><input class="form-control" name="login.lang" value="{{ cfg.login.lang }}"></div>
+            <div class="col-md-4"><label class="form-label">支持HD (SupportHD)</label><input class="form-control" name="login.supportHD" value="{{ cfg.login.supportHD }}"></div>
+            <div class="col-md-6"><label class="form-label">短ID (stbid)</label><input class="form-control" name="login.stbidShort" value="{{ cfg.login.stbidShort }}"></div>
+            <div class="col-md-3"><label class="form-label">IGMP 主机</label><input class="form-control" name="login.igmp.host" value="{{ cfg.login.igmp.host }}"></div>
+            <div class="col-md-3"><label class="form-label">IGMP 端口</label><input class="form-control" name="login.igmp.port" value="{{ cfg.login.igmp.port }}"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card mb-3">
+        <div class="card-header">EPG</div>
+        <div class="card-body">
+          <div class="row g-3">
+            <div class="col-md-4"><label class="form-label">区域代码 (areaCode)</label><input class="form-control" name="epg.areaCode" value="{{ cfg.epg.areaCode }}"></div>
+            <div class="col-md-4"><label class="form-label">往前天数</label><input class="form-control" name="epg.daysBefore" value="{{ cfg.epg.daysBefore }}"></div>
+            <div class="col-md-4"><label class="form-label">往后天数</label><input class="form-control" name="epg.daysAfter" value="{{ cfg.epg.daysAfter }}"></div>
+          </div>
+        </div>
+      </div>
+
+      <button type="submit" class="btn btn-primary w-100">💾 保存配置</button>
+    </form>
+  </div>
+</div>
+
+<script>
+function saveConfig(e) {
+  e.preventDefault();
+  var btn = e.target.querySelector('button[type=submit]');
+  btn.disabled = true; btn.textContent = '⏳ 保存中...';
+  fetch('/config', {method:'POST', body: new FormData(e.target)})
+    .then(function(r){return r.json()})
+    .then(function(d){ showToast('配置已保存', 'success'); })
+    .catch(function(e){ showToast('保存失败: '+e, 'danger'); })
+    .finally(function(){ btn.disabled=false; btn.textContent='💾 保存配置'; });
+  return false;
+}
+</script>
+{% endblock %}

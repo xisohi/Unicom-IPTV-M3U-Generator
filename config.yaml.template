@@ -1,0 +1,36 @@
+login:
+  server: "eds.iptv.example.com:8082"
+  userId: "YOUR_USER_ID"
+  password: "YOUR_PASSWORD"
+  stbId: "YOUR_STB_ID"
+  mac: "XX:XX:XX:XX:XX:XX"
+  ipaddr: "127.0.0.1"
+  conntype: "dhcp"
+  stbType: "your_stb_type"
+  stbVersion: "your_stb_version"
+  softwareVersion: "your_software_version"
+  templateName: "default"
+  areaId: "1111"
+  lang: "0"
+  supportHD: "1"
+  stbidShort: "your_short_id"
+  igmp:
+    host: "192.168.1.1"
+    port: 4022
+  headers:
+    User-Agent: "Mozilla/4.0;Resolution(PAL,720P,1080P)"
+    Connection: "Keep-Alive"
+    X-Requested-With: "com.hisense.iptv"
+
+epg:
+  areaCode: "YOUR_AREA_CODE"
+  daysBefore: 7
+  daysAfter: 2
+
+channels:
+  - original: "CCTV-1高清"
+    name: "CCTV-1综合"
+    chno: 1
+  - original: "CCTV-2高清现网"
+    name: "CCTV-2财经"
+    chno: 2

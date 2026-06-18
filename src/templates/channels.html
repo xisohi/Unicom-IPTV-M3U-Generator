@@ -1,0 +1,142 @@
+{% extends "base.html" %}
+{% block title %}频道管理 - IPTV STB Mock{% endblock %}
+{% block content %}
+<div class="row">
+  <div class="col-xl-10 mx-auto">
+    <form id="ch-form" onsubmit="return saveChannels(event)">
+      <button type="submit" class="btn btn-primary w-100 mb-3">💾 保存频道配置</button>
+
+      <div class="mb-3">
+        <input class="form-control" id="search" placeholder="搜索频道..." oninput="filterChannels()">
+      </div>
+
+      <div class="row row-cols-1 g-2" id="ch-list"></div>
+
+      <nav class="mt-3">
+        <ul class="pagination justify-content-center flex-wrap" id="pagination"></ul>
+      </nav>
+    </form>
+  </div>
+</div>
+
+<script>
+var PAGE_SIZE = 24;
+var currentPage = 1;
+var allItems = [];
+
+var allNames = {{ all_names | tojson }};
+var selectedMap = {{ selected | tojson }};
+
+allNames.forEach(function(n){
+  var ch = selectedMap[n] || null;
+  allItems.push({
+    name: n,
+    checked: ch !== null,
+    displayName: ch ? ch.name : '',
+    chno: ch ? ch.chno : ''
+  });
+});
+
+function render() {
+  var q = document.getElementById('search').value;
+  var filtered = allItems.filter(function(item){ return item.name.includes(q); });
+
+  filtered.sort(function(a,b){
+    if(a.checked && !b.checked) return -1;
+    if(!a.checked && b.checked) return 1;
+    return (a.chno || 9999) - (b.chno || 9999);
+  });
+
+  var total = filtered.length;
+  var pages = Math.ceil(total / PAGE_SIZE) || 1;
+  if (currentPage > pages) currentPage = pages;
+  var start = (currentPage - 1) * PAGE_SIZE;
+  var end = start + PAGE_SIZE;
+  var pageItems = filtered.slice(start, end);
+
+  var list = document.getElementById('ch-list');
+  list.innerHTML = '';
+  pageItems.forEach(function(item){
+    var col = document.createElement('div');
+    col.className = 'col ch-item';
+    col.innerHTML =
+      '<div class="card mb-0">' +
+      '  <div class="card-header py-2 d-flex align-items-center" style="cursor:pointer" onclick="toggleCard(this)">' +
+      '    <input type="checkbox" class="form-check-input ch-cb me-2" ' + (item.checked ? 'checked' : '') + ' value="' + item.name + '" onclick="event.stopPropagation()">' +
+      '    <span class="flex-grow-1 small">' + item.name + '</span>' +
+      '    <span class="arrow ms-1" style="font-size:.7rem">' + (item.checked ? '▼' : '▶') + '</span>' +
+      '  </div>' +
+      '  <div class="card-body py-2" style="display:' + (item.checked ? 'block' : 'none') + '">' +
+      '    <div class="mb-2"><input class="form-control form-control-sm display-input" placeholder="显示名" value="' + item.displayName + '"></div>' +
+      '    <div><input class="form-control form-control-sm chno-input" placeholder="频道号" type="number" value="' + item.chno + '"></div>' +
+      '  </div>' +
+      '</div>';
+    col.querySelector('.display-input').oninput = function(){ item.displayName = this.value; };
+    col.querySelector('.chno-input').oninput = function(){ item.chno = parseInt(this.value) || 0; };
+    col.querySelector('.ch-cb').onchange = function(){
+      item.checked = this.checked;
+      var body = this.closest('.card').querySelector('.card-body');
+      var arrow = this.closest('.card').querySelector('.arrow');
+      body.style.display = this.checked ? 'block' : 'none';
+      arrow.textContent = this.checked ? '▼' : '▶';
+      render();
+    };
+    list.appendChild(col);
+  });
+
+  var pag = document.getElementById('pagination');
+  pag.innerHTML = '';
+  for(var i = 1; i <= pages; i++){
+    var li = document.createElement('li');
+    li.className = 'page-item' + (i === currentPage ? ' active' : '');
+    var a = document.createElement('a');
+    a.className = 'page-link';
+    a.href = '#';
+    a.textContent = i;
+    a.onclick = function(e){ e.preventDefault(); currentPage = parseInt(this.textContent); render(); };
+    li.appendChild(a);
+    pag.appendChild(li);
+  }
+}
+
+function toggleCard(header) {
+  var body = header.nextElementSibling;
+  var arrow = header.querySelector('.arrow');
+  if (body.style.display === 'none') {
+    body.style.display = 'block';
+    arrow.textContent = '▼';
+  } else {
+    body.style.display = 'none';
+    arrow.textContent = '▶';
+  }
+}
+
+function filterChannels(){
+  currentPage = 1;
+  render();
+}
+
+function saveChannels(e) {
+  e.preventDefault();
+  var channels = [];
+  allItems.forEach(function(item){
+    if(!item.checked) return;
+    channels.push({
+      original: item.name,
+      name: item.displayName || item.name,
+      chno: parseInt(item.chno) || 0
+    });
+  });
+  var btn = e.target.querySelector('button');
+  btn.disabled = true; btn.textContent = '⏳ 保存中...';
+  fetch('/channels', {method:'POST', body: JSON.stringify(channels), headers:{'Content-Type':'application/json'}})
+    .then(function(r){return r.json()})
+    .then(function(d){ showToast('频道配置已保存', 'success'); })
+    .catch(function(e){ showToast('保存失败: '+e, 'danger'); })
+    .finally(function(){ btn.disabled=false; btn.textContent='💾 保存频道配置'; });
+  return false;
+}
+
+render();
+</script>
+{% endblock %}

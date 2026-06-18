@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% block title %}仪表盘 - IPTV STB Mock{% endblock %}
+{% block content %}
+<div class="row">
+  <div class="col-lg-8 mx-auto">
+    <div class="card mb-4">
+      <div class="card-body text-center">
+        <h5 class="card-title">运行状态</h5>
+        <p class="display-6" id="status-badge">
+          {% if status.state == 'running' %}
+          <span class="badge bg-warning">⏳ 运行中</span>
+          {% elif status.state == 'error' %}
+          <span class="badge bg-danger">❌ 错误</span>
+          {% else %}
+          <span class="badge bg-success">● 空闲</span>
+          {% endif %}
+        </p>
+        {% if schedule.last_run %}
+        <p class="text-muted small">
+          上次运行: {{ schedule.last_run[:16] }} ·
+          {% if schedule.last_status == 'success' %}✅ 成功{% else %}❌ 失败{% endif %}
+        </p>
+        {% endif %}
+        {% if schedule.enabled %}
+        <p class="text-muted small">下次自动: {{ schedule.cron }}</p>
+        {% endif %}
+        <button class="btn btn-primary btn-lg mt-2" id="btn-run" onclick="triggerRun()">▶ 立即运行</button>
+      </div>
+    </div>
+
+    <div class="card mb-4" id="live-log-card" style="display:none">
+      <div class="card-header d-flex justify-content-between">
+        <span>运行日志</span>
+        <a href="/logs" class="btn btn-sm btn-outline-secondary">查看日志列表</a>
+      </div>
+      <div class="card-body">
+        <pre id="live-log" class="log-box mb-0"></pre>
+      </div>
+    </div>
+
+    <div class="row g-3 mb-4">
+      <div class="col-6">
+        <a href="/files/iptv.m3u" class="btn btn-outline-primary w-100">📥 iptv.m3u</a>
+      </div>
+      <div class="col-6">
+        <a href="/files/epg.xml" class="btn btn-outline-primary w-100">📥 epg.xml</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function triggerRun() {
+  var btn = document.getElementById('btn-run');
+  btn.disabled = true;
+  btn.textContent = '⏳ 运行中...';
+  var card = document.getElementById('live-log-card');
+  card.style.display = 'block';
+  var logEl = document.getElementById('live-log');
+
+  fetch('/run', {method:'POST'}).then(function(r){return r.json()}).then(function(d){
+    if(d.error){ showToast(d.error, 'warning'); btn.disabled=false; btn.textContent='▶ 立即运行'; return; }
+    var es = new EventSource('/run/stream');
+    es.onmessage = function(e){
+      if(e.data === '__END__'){
+        es.close();
+        btn.disabled = false;
+        btn.textContent = '▶ 立即运行';
+        showToast('运行完成', 'success');
+      } else {
+        logEl.textContent += e.data + '\n';
+        logEl.scrollTop = logEl.scrollHeight;
+      }
+    };
+  });
+}
+</script>
+{% endblock %}

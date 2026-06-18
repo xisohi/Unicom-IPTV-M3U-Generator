@@ -1,0 +1,14 @@
+.log-box {
+  background: #1e1e1e;
+  color: #d4d4d4;
+  padding: 1rem;
+  border-radius: 6px;
+  font-size: .85rem;
+  max-height: 60vh;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+@media (max-width: 576px) {
+  .display-6 { font-size: 1.5rem; }
+}

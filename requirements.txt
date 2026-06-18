@@ -1,0 +1,5 @@
+pycryptodome
+requests
+pyyaml
+flask
+apscheduler
